@@ -12,11 +12,12 @@ class ContactDB{
 
         await this.db.schema('Contact', [
             { name: 'id', type: 'INTEGER' },
+            { name: 'article', type: 'TEXT' },
             { name: 'first_name', type: 'TEXT' },
             { name: 'last_name', type: 'TEXT' },
-            { name: 'phone_number', type: 'TEXT' },
-            { name: 'email_address', type: 'TEXT' },
-            { name: 'article', type: 'TEXT' },
+            { name: 'phone', type: 'TEXT' },
+            { name: 'email', type: 'TEXT' },
+            { name: 'address', type: 'TEXT' },
             { name: 'contact_by_email', type: 'INTEGER' },
             { name: 'contact_by_phone', type: 'INTEGER' },
             { name: 'contact_by_mail', type: 'INTEGER' },
@@ -69,11 +70,12 @@ class ContactDB{
 
     async createContact(r){
         const id = await this.db.create('Contact', [
+            { column: 'article', value: r.article },
             { column: 'first_name', value: r.first_name },
             { column: 'last_name', value: r.last_name },
-            { column: 'phone_number', value: r.phone_number },
-            { column: 'email_address', value: r.email_address },
-            { column: 'article', value: r.article },
+            { column: 'phone', value: r.phone },
+            { column: 'email', value: r.email },
+            { column: 'address', value: r.address },
             { column: 'contact_by_email', value: r.contact_by_email ? 1 : 0 },
             { column: 'contact_by_phone', value: r.contact_by_phone ? 1 : 0 },
             { column: 'contact_by_mail', value: r.contact_by_mail ? 1 : 0 },
@@ -85,11 +87,12 @@ class ContactDB{
 
     async editContact(id, r){
         await this.db.update('Contact', [
+                { column: 'article', value: r.article },
                 { column: 'first_name', value: r.first_name },
                 { column: 'last_name', value: r.last_name },
-                { column: 'phone_number', value: r.phone_number },
-                { column: 'email_address', value: r.email_address },
-                { column: 'article', value: r.article },
+                { column: 'phone', value: r.phone },
+                { column: 'email', value: r.email },
+                { column: 'address', value: r.address },
                 { column: 'contact_by_email', value: r.contact_by_email ? 1 : 0 },
                 { column: 'contact_by_phone', value: r.contact_by_phone ? 1 : 0 },
                 { column: 'contact_by_mail', value: r.contact_by_mail ? 1 : 0 },
