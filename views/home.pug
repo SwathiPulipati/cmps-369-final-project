@@ -8,7 +8,7 @@ block content
             .col-.col-md-4.d-inline-flex.justify-content-start.justify-content-md-end
                 a(href='/create').btn.btn-outline-primary.align-self-center Create a new contact
         .list-group.my-2
-            .list-group-item.my-2(v-for='c in contacts')
+            .list-group-item.my-2(v-for='c in contacts', @click='moveMap(c.latitude, c.longitude)')
                 .row.my-1
                     .col-.col-lg-2
                         a(:href="'/'+c.id") {{c.title}} {{c.first_name}} {{c.last_name}}
@@ -28,12 +28,18 @@ block content
                         section
                             input(id="'mail'+c.id", type='checkbox', disabled, :checked = "c.contact_by_mail")
                             label(for="mail").mx-2 Mail
-                    
+
+        #map-container  
+            #map
+
+    script(src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js", integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=", crossorigin="")          
     script. 
         Vue.createApp({
             data: function() {
                 return {
-                    contacts: [],    
+                    contacts: [],
+                    markers: [],
+                    map: ''    
                 }
             },
             mounted: function() {
@@ -43,6 +49,26 @@ block content
                 async init(){
                     const response = await axios.get('/home');
                     this.contacts = response.data.contacts;
+                    await this.initMap()
+                },
+                async initMap(){
+                    map = L.map('map').setView([40.4, -74.5], 11);
+                    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    }).addTo(map);
+
+                    for(const place of this.contacts){
+                        if(place.latitude !== '' && place.longitude !== ''){
+                            const marker = L.marker([place.latitude, place.longitude]).addTo(map).bindPopup(`<b>${place.title} ${place.first_name} ${place.last_name}</b><br/>${place.address}`);
+                            this.markers.push({id: place.id, marker: marker});
+                        }
+                        console.log(this.markers);
+                    }
+                },
+                moveMap(lat, lng){
+                    if(lat !== '' && lng !== '')
+                        map.flyTo(new L.LatLng(lat,lng));
                 }
             }
         }).mount('#contact-list')
