@@ -15,9 +15,10 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use('/contacts', require('./routes/contacts'))
-app.use('/accounts', require('./routes/accounts'))
+app.use('/', require('./routes/accounts'))
+app.use('/', require('./routes/contacts'))
 app.use('/', (req, res) => {
+    console.log("home")
     res.render('home', {contacts: []});
 });
 

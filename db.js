@@ -12,7 +12,7 @@ class ContactDB{
 
         await this.db.schema('Contact', [
             { name: 'id', type: 'INTEGER' },
-            { name: 'article', type: 'TEXT' },
+            { name: 'title', type: 'TEXT' },
             { name: 'first_name', type: 'TEXT' },
             { name: 'last_name', type: 'TEXT' },
             { name: 'phone', type: 'TEXT' },
@@ -70,7 +70,7 @@ class ContactDB{
 
     async createContact(r){
         const id = await this.db.create('Contact', [
-            { column: 'article', value: r.article },
+            { column: 'title', value: r.title },
             { column: 'first_name', value: r.first_name },
             { column: 'last_name', value: r.last_name },
             { column: 'phone', value: r.phone },
@@ -87,7 +87,7 @@ class ContactDB{
 
     async editContact(id, r){
         await this.db.update('Contact', [
-                { column: 'article', value: r.article },
+                { column: 'title', value: r.title },
                 { column: 'first_name', value: r.first_name },
                 { column: 'last_name', value: r.last_name },
                 { column: 'phone', value: r.phone },

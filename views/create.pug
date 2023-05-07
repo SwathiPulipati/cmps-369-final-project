@@ -2,57 +2,107 @@ extends layout.pug
 
 block content   
     h1.mt-4.mb-3 Create Contact
+    #create
+        form(action='/create', method='post', novalidate, :class = "[show_valid ? 'was-validated':'needs-validation']")
+            .row
+                .col-.col-xl-6
+                    fieldset.border.px-4.pb-4
+                        legend.float-none.w-auto.px-2 Basic Info 
+                        .form-floating.my-1
+                            input(type='text', name = 'title', v-model.trim = 'title', required, placeholder = 'ex').form-control
+                            label(for='title').form-label Title:  
+                        .form-floating.my-1
+                            input(type='text', name = 'first_name', v-model.trim = 'first_name', required, placeholder = 'ex').form-control
+                            label(for='first_name').form-label First Name:    
+                        .form-floating.my-1
+                            input(type='text', name = 'last_name', v-model.trim = 'last_name', required, placeholder = 'ex').form-control
+                            label(for='last_name').form-label Last Name:             
+                .col-.col-xl-6    
+                    fieldset.border.px-4.pb-4
+                        legend.float-none.w-auto.px-2 Contact Methods 
+                        .form-floating.my-1
+                            input(type='text', name = 'phone', v-model.trim = 'phone', required, placeholder = 'ex').form-control
+                            label(for='phone').form-label Phone:               
+                        .form-floating.my-1
+                            input(type='text', name = 'email', v-model.trim = 'email', required, placeholder = 'ex').form-control
+                            label(for='email').form-label Email:   
+                        .form-floating.my-1
+                            input(type='text', name = 'address', v-model.trim = 'address', required, placeholder = 'ex').form-control
+                            label(for='address').form-label Address: 
+                        .alert.alert-danger.mt-2(v-if = "invalid_address") 
+                            span This address could not be found. Try reformatting this address or try a different address.                  
+            
+            .row
+                .col-12
+                    fieldset.border.px-4.pb-4 
+                        legend.float-none.w-auto.px-2 Contact Preferences 
+                        section
+                            input(name='contact_by_phone', type='checkbox', v-model = 'contact_by_phone').form-check-input
+                            label(for="contact_by_phone").form-check-label.mx-2 Phone
+                        section
+                            input(name='contact_by_email', type='checkbox', v-model = 'contact_by_email').form-check-input
+                            label(for="contact_by_email").form-check-label.mx-2 Email
+                        section
+                            input(name='contact_by_mail', type='checkbox', v-model = 'contact_by_mail').form-check-input
+                            label(for="contact_by_mail").form-check-label.mx-2 Mail
 
-    form(action='/create', method='post', novalidate, class = ((show_valid)? 'was-validated':'needs-validation'))
-        .row
-            .col-.col-xl-6
-                fieldset.border.px-4.pb-4
-                    legend.float-none.w-auto.px-2 Basic Info 
-                    .form-floating.my-1
-                        input(type='text', name = 'first_name', value = info.first_name, required, placeholder = 'ex').form-control
-                        label(for='first_name').form-label First Name:    
-                    .form-floating.my-1
-                        input(type='text', name = 'last_name', value = info.last_name, required, placeholder = 'ex').form-control
-                        label(for='last_name').form-label Last Name:
-                    .form-floating.my-1
-                        input(type='text', name = 'phone', value = info.phone, required, placeholder = 'ex').form-control
-                        label(for='phone').form-label Phone:               
-                    .form-floating.my-1
-                        input(type='text', name = 'email', value = info.email, required, placeholder = 'ex').form-control
-                        label(for='email').form-label Email:                
-            .col-.col-xl-6    
-                fieldset.border.px-4.pb-4
-                    legend.float-none.w-auto.px-2 Address 
-                    .form-floating.my-1
-                        input(type='text', name = 'street', value = info.street, required, placeholder = 'ex').form-control
-                        label(for='street').form-label Street:                
-                    .form-floating.my-1
-                        input(type='text', name = 'city', value = info.city, required, placeholder = 'ex').form-control
-                        label(for='city').form-label City:
-                    .form-floating.my-1
-                        input(type='text', name = 'state', value = info.state, required, placeholder = 'ex').form-control
-                        label(for='state').form-label State:
-                    .form-floating.my-1
-                        input(type='text', name = 'zip', value = info.zip, required, placeholder = 'ex').form-control
-                        label(for='zip').form-label Zip:
-                    .form-floating.my-1
-                        input(type='text', name = 'country', value = info.country, required, placeholder = 'ex').form-control
-                        label(for='country').form-label Country:
-        
-        .row
-            .col-12
-                fieldset.border.px-4.pb-4 
-                    legend.float-none.w-auto.px-2 Contact Preferences 
-                    section
-                        input(name='contact_by_phone', type='checkbox', checked = (info.contact_by_phone == 'on' ? true : false)).form-check-input
-                        label(for="contact_by_phone").form-check-label.mx-2 Phone
-                    section
-                        input(name='contact_by_email', type='checkbox', checked = (info.contact_by_email == 'on' ? true : false)).form-check-input
-                        label(for="contact_by_email").form-check-label.mx-2 Email
-                    section
-                        input(name='contact_by_mail', type='checkbox', checked = (info.contact_by_mail == 'on' ? true : false)).form-check-input
-                        label(for="contact_by_mail").form-check-label.mx-2 Mail
+            .d-flex.justify-content-end
+                button(type = "button", @click = 'checkValid()').btn.btn-primary.my-4 Add 
+                a(href='/').btn.btn-secondary.mx-2.align-self-center Cancel   
+        //- p {{title}} {{first_name}} {{last_name}} {{phone}} {{email}} {{address}} {{contact_by_email}} {{contact_by_phone}} {{contact_by_mail}}         
 
-        .d-flex.justify-content-end
-            button(type='submit').btn.btn-primary.my-4 Add 
-            a(href='/').btn.btn-secondary.mx-2.align-self-center Cancel            
+    script. 
+        Vue.createApp({
+            data: function() {
+                return {
+                    show_valid: false,
+                    invalid_address: false,
+                    title: '',
+                    first_name: '',
+                    last_name: '',
+                    phone: '',
+                    email: '',
+                    address: '',
+                    contact_by_email: false,
+                    contact_by_phone: false,
+                    contact_by_mail: false
+                }
+            },
+            mounted: function() {
+                //- console.log("mounted")
+            },
+            methods: {
+                async checkValid(){
+                    if(this.title === '' || this.first_name === '' || this.last_name === '' || this.phone === '' || this.email === '' || this.address === ''){
+                        this.show_valid = true;
+                        console.log("something is empty");
+                    }
+                    else{
+                        console.log("nothing is empty");
+                        const response = await axios.put('/create', {address : this.address});
+                        if(response.data.result){
+                            console.log("could not find address")
+                            this.show_valid = true;
+                            this.invalid_address = true;
+                        }
+                        else{
+                            console.log("valid address")
+                            const done = await axios.post('/create', {
+                                title: this.title,
+                                first_name: this.first_name,
+                                last_name: this.last_name,
+                                phone: this.phone,
+                                email: this.email,
+                                address: response.data.address,
+                                contact_by_email: this.contact_by_email,
+                                contact_by_phone: this.contact_by_phone,
+                                contact_by_mail: this.contact_by_mail,
+                                latitude: response.data.latitude,
+                                longitude: response.data.longitude
+                            })
+                            console.log("after done");
+                        }
+                    }
+                }
+            }
+        }).mount('#create')
