@@ -68,25 +68,18 @@ block content
                     contact_by_mail: false
                 }
             },
-            mounted: function() {
-                //- console.log("mounted")
-            },
             methods: {
                 async checkValid(){
                     if(this.title === '' || this.first_name === '' || this.last_name === '' || this.phone === '' || this.email === '' || this.address === ''){
                         this.show_valid = true;
-                        console.log("something is empty");
                     }
                     else{
-                        console.log("nothing is empty");
                         const response = await axios.put('/create', {address : this.address});
                         if(response.data.result){
-                            console.log("could not find address")
                             this.show_valid = true;
                             this.invalid_address = true;
                         }
                         else{
-                            console.log("valid address")
                             const done = await axios.post('/create', {
                                 title: this.title,
                                 first_name: this.first_name,
@@ -100,7 +93,8 @@ block content
                                 latitude: response.data.latitude,
                                 longitude: response.data.longitude
                             })
-                            console.log("after done");
+                            window.location.href = "/"
+
                         }
                     }
                 }
