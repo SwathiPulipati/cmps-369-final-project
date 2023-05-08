@@ -2,7 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 
-const Database = require('./db');
+const Database = require('./wrapper_db');
 const db = new Database();
 db.initialize();
 

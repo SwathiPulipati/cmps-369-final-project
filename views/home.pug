@@ -6,31 +6,44 @@ block content
             .col-.col-md-8
                 h1 Contact List 
             .col-.col-md-4.d-inline-flex.justify-content-start.justify-content-md-end
+                .form-check.form-switch.align-self-center.mx-4   
+                    input.form-check-input#toggle-map(type='checkbox', v-model = "toggle_map")
+                    label.form-check-label(for='toggle-map') Toggle Map
                 a(href='/create').btn.btn-outline-primary.align-self-center Create a new contact
-        .list-group.my-2
-            .list-group-item.my-2(v-for='c in contacts', @click='moveMap(c.latitude, c.longitude)')
-                .row.my-1
-                    .col-.col-lg-2
-                        a(:href="'/'+c.id") {{c.title}} {{c.first_name}} {{c.last_name}}
-                    .col-.col-lg-2.mt-2.mt-lg-0
-                        span {{c.phone}}
-                    .col-.col-lg-3
-                        span {{c.email}}
-                    .col-.col-lg-3.my-2.my-lg-0
-                        span {{c.address}}
-                    .col-.col-lg-2.my-2.my-lg-0
-                        section
-                            input(id="'phone'+c.id", type='checkbox', disabled, :checked = "c.contact_by_phone")
-                            label(for="phone").mx-2 Phone
-                        section
-                            input(id="'email'+c.id", type='checkbox', disabled, :checked = "c.contact_by_email")
-                            label(for="email").mx-2 Email
-                        section
-                            input(id="'mail'+c.id", type='checkbox', disabled, :checked = "c.contact_by_mail")
-                            label(for="mail").mx-2 Mail
+        .row.mt-4
+            .col-.col-lg-7(v-show='toggle_map')
+                #map-container
+                    #map
+            .col
+                .input-group
+                    input.form-control(type='text', v-model='search_term', placeholder='Search...')
+                    button.btn.btn-primary.btn-sm(type='button', @click = 'filterList()')
+                        svg(xmlns="http://www.w3.org/2000/svg", width="16", height="16", fill="currentColor", class="bi bi-search", viewBox="0 0 16 16").mb-1
+                            path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")   
+                .alert.alert-warning.mt-4(v-if='contacts.length === 0'): i No Contacts Found
+                .list-group.my-2
+                    .list-group-item.my-2(v-for='c in contacts', @click='moveMap(c.latitude, c.longitude)')
+                        .row.my-1
+                            .col-
+                                a(:href="'/'+c.id") {{c.title}} {{c.first_name}} {{c.last_name}}
+                            .col-.mt-2
+                                span {{c.phone}}
+                            .col-
+                                span {{c.email}}
+                            .col-my-2
+                                span {{c.address}}
+                            .col-.my-2
+                                section
+                                    input(id="'phone'+c.id", type='checkbox', disabled, :checked = "c.contact_by_phone")
+                                    label(for="phone").mx-2 Phone
+                                section
+                                    input(id="'email'+c.id", type='checkbox', disabled, :checked = "c.contact_by_email")
+                                    label(for="email").mx-2 Email
+                                section
+                                    input(id="'mail'+c.id", type='checkbox', disabled, :checked = "c.contact_by_mail")
+                                    label(for="mail").mx-2 Mail
 
-        #map-container  
-            #map
+            
 
     script(src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js", integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=", crossorigin="")          
     script. 
@@ -39,7 +52,9 @@ block content
                 return {
                     contacts: [],
                     markers: [],
-                    map: ''    
+                    map: '',
+                    toggle_map: true,
+                    search_term: ''   
                 }
             },
             mounted: function() {
@@ -58,17 +73,31 @@ block content
                         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     }).addTo(map);
 
+                    await this.initMarkers();
+                },
+                async initMarkers(){
+                    for (let i = 0; i < this.markers.length; i++) {
+                        map.removeLayer(this.markers[i].marker);
+                    }
+                    this.markers.splice(0, this.markers.length);
                     for(const place of this.contacts){
                         if(place.latitude !== '' && place.longitude !== ''){
                             const marker = L.marker([place.latitude, place.longitude]).addTo(map).bindPopup(`<b>${place.title} ${place.first_name} ${place.last_name}</b><br/>${place.address}`);
                             this.markers.push({id: place.id, marker: marker});
                         }
-                        console.log(this.markers);
                     }
+                    console.log(this.markers);
                 },
                 moveMap(lat, lng){
-                    if(lat !== '' && lng !== '')
+                    if(lat !== '' && lng !== ''){
                         map.flyTo(new L.LatLng(lat,lng));
+                    }
+                },
+                async filterList(){
+                    const response = await axios.post('/filter', {search : this.search_term});
+                    this.contacts = response.data.contacts;
+                    this.map = '';
+                    await this.initMarkers()
                 }
             }
         }).mount('#contact-list')

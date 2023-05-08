@@ -9,6 +9,12 @@ router.get('/home', async (req, res) => {
     res.json({contacts: contacts});
 })
 
+router.post('/filter', async (req, res) => {
+    console.log('req:', req.body)
+    const contacts = await req.db.filterContacts(req.body.search);
+    res.json({contacts: contacts});
+})
+
 router.get('/create', async (req, res) => {
     res.render('create');
 })
