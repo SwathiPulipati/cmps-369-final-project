@@ -12,12 +12,25 @@ block content
                 a(href='/create').btn.btn-outline-primary.align-self-center Create a new contact
         .row.mt-4
             .col-.col-lg-7(v-show='toggle_map')
-                #map-container
+                .input-group.d-inline-flex
+                    select.form-select.btn.btn-outline-primary(v-model='search_radius')
+                        option(selected, value='') Select Radius
+                        option(value='5') 5 mi
+                        option(value='10') 10 mi 
+                        option(value='25') 25 mi
+                    input.form-control(type='text', v-model='search_address', placeholder=' - Enter Address - ')
+                    button.btn.btn-primary.btn-sm(type='button', @click = 'checkValid()')
+                        svg(xmlns="http://www.w3.org/2000/svg", width="16", height="16", fill="currentColor", class="bi bi-search", viewBox="0 0 16 16").mb-1
+                            path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")  
+                .position-relative.bottom-0.start-50
+                    .toast(ref='error')
+                        .toast-body {{toast_message}}
+                #map-container.my-3
                     #map
             .col
                 .input-group
-                    input.form-control(type='text', v-model='search_term', placeholder='Search...')
-                    button.btn.btn-primary.btn-sm(type='button', @click = 'filterList()')
+                    input.form-control(type='text', v-model='search_term', placeholder=' - Search By Name - ')
+                    button.btn.btn-primary.btn-sm(type='button', @click = 'filterListByName()')
                         svg(xmlns="http://www.w3.org/2000/svg", width="16", height="16", fill="currentColor", class="bi bi-search", viewBox="0 0 16 16").mb-1
                             path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")   
                 .alert.alert-warning.mt-4(v-if='contacts.length === 0'): i No Contacts Found
@@ -42,7 +55,6 @@ block content
                                 section
                                     input(id="'mail'+c.id", type='checkbox', disabled, :checked = "c.contact_by_mail")
                                     label(for="mail").mx-2 Mail
-
             
 
     script(src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js", integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=", crossorigin="")          
@@ -54,17 +66,26 @@ block content
                     markers: [],
                     map: '',
                     toggle_map: true,
-                    search_term: ''   
+                    search_term: '',
+                    search_radius: '',
+                    search_address: '',
+                    center: {},
+                    toast_message: ''  
                 }
             },
-            mounted: function() {
-                this.init();
+            mounted: async function() {
+                await this.initList();
+                await this.initMap()
+
             },
             methods: {
-                async init(){
+                showToast(){
+                    const toast = new bootstrap.Toast(this.$refs.error)
+                    toast.show()
+                },
+                async initList(){
                     const response = await axios.get('/home');
                     this.contacts = response.data.contacts;
-                    await this.initMap()
                 },
                 async initMap(){
                     map = L.map('map').setView([40.4, -74.5], 11);
@@ -76,8 +97,8 @@ block content
                     await this.initMarkers();
                 },
                 async initMarkers(){
-                    for (let i = 0; i < this.markers.length; i++) {
-                        map.removeLayer(this.markers[i].marker);
+                    for(const m of this.markers){
+                        map.removeLayer(m.marker);
                     }
                     this.markers.splice(0, this.markers.length);
                     for(const place of this.contacts){
@@ -93,10 +114,64 @@ block content
                         map.flyTo(new L.LatLng(lat,lng));
                     }
                 },
-                async filterList(){
+                async filterListByName(){
                     const response = await axios.post('/filter', {search : this.search_term});
                     this.contacts = response.data.contacts;
                     this.map = '';
+                    await this.initMarkers()
+                },
+                async checkValid(){
+                    if(this.search_address === ''){
+                        await this.initList()
+                        await this.initMarkers()
+                    }
+                    else{
+                        if(this.search_radius === ''){
+                            this.toast_message = 'Please select a search radius'
+                            this.showToast()
+                        }
+                        else if(this.search_address !== ''){
+                            const response = await axios.post('/geolocate', {address : this.search_address});
+                            if(response.data.result){
+                                this.toast_message = 'Please enter a valid address'
+                                this.showToast()
+                            }
+                            else{
+                                this.center.lat = response.data.latitude;
+                                this.center.lng = response.data.longitude;
+                                this.moveMap(this.center.lat, this.center.lng)
+                                console.log('lat lng', this.center.lat, this.center.lng)
+                                this.filterListByDistance();
+                            }
+                        }
+                    }
+                },
+                async filterListByDistance(){
+                    const response = await axios.get('/home');
+                    const full_list = response.data.contacts;
+                    for(const c of full_list){
+                        console.log('in loop')
+                        let dist = '';
+                        if ((this.center.lat == c.latitude) && (this.center.lng == c.longitude)) {
+                            dist = 0;
+                        }
+                        else {
+                            const radlat1 = Math.PI * this.center.lat/180;
+                            const radlat2 = Math.PI * c.latitude/180;
+                            const theta = this.center.lng-c.longitude;
+                            const radtheta = Math.PI * theta/180;
+                            dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+                            if (dist > 1) {
+                                dist = 1;
+                            }
+                            dist = Math.acos(dist);
+                            dist = dist * 180/Math.PI;
+                            dist = dist * 60 * 1.1515;
+                            console.log(c.id, ': ', dist)
+                        }
+                        c.distance = dist;
+                    }
+                    this.contacts = full_list.filter(c => c.distance <= this.search_radius)
                     await this.initMarkers()
                 }
             }

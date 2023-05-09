@@ -19,7 +19,8 @@ router.get('/create', async (req, res) => {
     res.render('create');
 })
 
-router.put('/create', async (req, res) => {
+router.post('/geolocate', async (req, res) => {
+    console.log('geolocate')
     const result =  await geocoder.geocode(req.body.address);
     if(result.length >= 1){
         const address = result[0].formattedAddress;
@@ -28,6 +29,7 @@ router.put('/create', async (req, res) => {
         res.json({address: address, latitude: lat, longitude: lng});
     }
     else if (result.length == 0){
+        console.log('fail')
         res.json({result: 'No Address Found'})
     }
 })

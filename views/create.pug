@@ -3,13 +3,19 @@ extends layout.pug
 block content   
     h1.mt-4.mb-3 Create Contact
     #create
-        form(action='/create', method='post', novalidate, :class = "[show_valid ? 'was-validated':'needs-validation']")
+        form(action='/create', method='post', novalidate, :class = "[show_valid ? 'was-validated':'needs-validation']", ref='form')
             .row
                 .col-.col-xl-6
                     fieldset.border.px-4.pb-4
                         legend.float-none.w-auto.px-2 Basic Info 
                         .form-floating.my-1
-                            input(type='text', name = 'title', v-model.trim = 'title', required, placeholder = 'ex').form-control
+                            select.form-select(v-model='title')
+                                option(value='') 
+                                option(value='Mr.') Mr.
+                                option(value='Mrs.') Mrs. 
+                                option(value='Ms.') Ms.
+                                option(value='Mx.') Mx.
+                                option(value='Dr.') Dr.                            
                             label(for='title').form-label Title:  
                         .form-floating.my-1
                             input(type='text', name = 'first_name', v-model.trim = 'first_name', required, placeholder = 'ex').form-control
@@ -21,10 +27,10 @@ block content
                     fieldset.border.px-4.pb-4
                         legend.float-none.w-auto.px-2 Contact Methods 
                         .form-floating.my-1
-                            input(type='text', name = 'phone', v-model.trim = 'phone', required, placeholder = 'ex').form-control
-                            label(for='phone').form-label Phone:               
+                            input(type='tel', name = 'phone', v-model.trim = 'phone', required, placeholder = 'ex', pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}").form-control
+                            label(for='phone').form-label Phone &lpar;xxx-xxx-xxxx&rpar;:               
                         .form-floating.my-1
-                            input(type='text', name = 'email', v-model.trim = 'email', required, placeholder = 'ex').form-control
+                            input(type='email', name = 'email', v-model.trim = 'email', required, placeholder = 'ex').form-control
                             label(for='email').form-label Email:   
                         .form-floating.my-1
                             input(type='text', name = 'address', v-model.trim = 'address', required, placeholder = 'ex').form-control
@@ -69,16 +75,20 @@ block content
             },
             methods: {
                 async checkValid(){
-                    if(this.title === '' || this.first_name === '' || this.last_name === '' || this.phone === '' || this.email === '' || this.address === ''){
+                    console.log('check valid')
+                    if(this.$refs.form.checkValidity() === false){
                         this.show_valid = true;
                     }
                     else{
-                        const response = await axios.put('/create', {address : this.address});
+                        console.log('before geolocate')
+                        const response = await axios.post('/geolocate', {address : this.address});
                         if(response.data.result){
                             this.show_valid = true;
                             this.invalid_address = true;
+                            console.log('invalid address')
                         }
                         else{
+                            console.log('valid address')
                             const done = await axios.post('/create', {
                                 title: this.title,
                                 first_name: this.first_name,
