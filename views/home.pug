@@ -107,7 +107,6 @@ block content
                             this.markers.push({id: place.id, marker: marker});
                         }
                     }
-                    console.log(this.markers);
                 },
                 moveMap(lat, lng){
                     if(lat !== '' && lng !== ''){
@@ -140,7 +139,6 @@ block content
                                 this.center.lat = response.data.latitude;
                                 this.center.lng = response.data.longitude;
                                 this.moveMap(this.center.lat, this.center.lng)
-                                console.log('lat lng', this.center.lat, this.center.lng)
                                 this.filterListByDistance();
                             }
                         }
@@ -150,7 +148,6 @@ block content
                     const response = await axios.get('/home');
                     const full_list = response.data.contacts;
                     for(const c of full_list){
-                        console.log('in loop')
                         let dist = '';
                         if ((this.center.lat == c.latitude) && (this.center.lng == c.longitude)) {
                             dist = 0;
@@ -167,7 +164,6 @@ block content
                             dist = Math.acos(dist);
                             dist = dist * 180/Math.PI;
                             dist = dist * 60 * 1.1515;
-                            console.log(c.id, ': ', dist)
                         }
                         c.distance = dist;
                     }
