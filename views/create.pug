@@ -3,13 +3,19 @@ extends layout.pug
 block content   
     h1.mt-4.mb-3 Create Contact
     #create
-        form(action='/create', method='post', novalidate, :class = "[show_valid ? 'was-validated':'needs-validation']")
+        form(action='/create', method='post', novalidate, :class = "[show_valid ? 'was-validated':'needs-validation']", ref='form')
             .row
                 .col-.col-xl-6
                     fieldset.border.px-4.pb-4
                         legend.float-none.w-auto.px-2 Basic Info 
                         .form-floating.my-1
-                            input(type='text', name = 'title', v-model.trim = 'title', required, placeholder = 'ex').form-control
+                            select.form-select(v-model='title')
+                                option(value='') 
+                                option(value='Mr.') Mr.
+                                option(value='Mrs.') Mrs. 
+                                option(value='Ms.') Ms.
+                                option(value='Mx.') Mx.
+                                option(value='Dr.') Dr.                            
                             label(for='title').form-label Title:  
                         .form-floating.my-1
                             input(type='text', name = 'first_name', v-model.trim = 'first_name', required, placeholder = 'ex').form-control
@@ -21,10 +27,10 @@ block content
                     fieldset.border.px-4.pb-4
                         legend.float-none.w-auto.px-2 Contact Methods 
                         .form-floating.my-1
-                            input(type='text', name = 'phone', v-model.trim = 'phone', required, placeholder = 'ex').form-control
-                            label(for='phone').form-label Phone:               
+                            input(type='tel', name = 'phone', v-model.trim = 'phone', required, placeholder = 'ex', pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}").form-control
+                            label(for='phone').form-label Phone &lpar;xxx-xxx-xxxx&rpar;:               
                         .form-floating.my-1
-                            input(type='text', name = 'email', v-model.trim = 'email', required, placeholder = 'ex').form-control
+                            input(type='email', name = 'email', v-model.trim = 'email', required, placeholder = 'ex').form-control
                             label(for='email').form-label Email:   
                         .form-floating.my-1
                             input(type='text', name = 'address', v-model.trim = 'address', required, placeholder = 'ex').form-control
@@ -49,7 +55,6 @@ block content
             .d-flex.justify-content-end
                 button(type = "button", @click = 'checkValid()').btn.btn-primary.my-4 Add 
                 a(href='/').btn.btn-secondary.mx-2.align-self-center Cancel   
-        //- p {{title}} {{first_name}} {{last_name}} {{phone}} {{email}} {{address}} {{contact_by_email}} {{contact_by_phone}} {{contact_by_mail}}         
 
     script. 
         Vue.createApp({
@@ -68,25 +73,18 @@ block content
                     contact_by_mail: false
                 }
             },
-            mounted: function() {
-                //- console.log("mounted")
-            },
             methods: {
                 async checkValid(){
-                    if(this.title === '' || this.first_name === '' || this.last_name === '' || this.phone === '' || this.email === '' || this.address === ''){
+                    if(this.$refs.form.checkValidity() === false){
                         this.show_valid = true;
-                        console.log("something is empty");
                     }
                     else{
-                        console.log("nothing is empty");
-                        const response = await axios.put('/create', {address : this.address});
+                        const response = await axios.post('/geolocate', {address : this.address});
                         if(response.data.result){
-                            console.log("could not find address")
                             this.show_valid = true;
                             this.invalid_address = true;
                         }
                         else{
-                            console.log("valid address")
                             const done = await axios.post('/create', {
                                 title: this.title,
                                 first_name: this.first_name,
@@ -100,7 +98,8 @@ block content
                                 latitude: response.data.latitude,
                                 longitude: response.data.longitude
                             })
-                            console.log("after done");
+                            window.location.href = "/"
+
                         }
                     }
                 }

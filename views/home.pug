@@ -6,43 +6,169 @@ block content
             .col-.col-md-8
                 h1 Contact List 
             .col-.col-md-4.d-inline-flex.justify-content-start.justify-content-md-end
+                .form-check.form-switch.align-self-center.mx-4   
+                    input.form-check-input#toggle-map(type='checkbox', v-model = "toggle_map")
+                    label.form-check-label(for='toggle-map') Toggle Map
                 a(href='/create').btn.btn-outline-primary.align-self-center Create a new contact
-        .list-group.my-2
-            .list-group-item.my-2(v-for='c in contacts')
-                .row.my-1
-                    .col-.col-lg-2
-                        a(:href="'/'+c.id") {{c.title}} {{c.first_name}} {{c.last_name}}
-                    .col-.col-lg-2.mt-2.mt-lg-0
-                        span {{c.phone}}
-                    .col-.col-lg-3
-                        span {{c.email}}
-                    .col-.col-lg-3.my-2.my-lg-0
-                        span {{c.address}}
-                    .col-.col-lg-2.my-2.my-lg-0
-                        section
-                            input(id="'phone'+c.id", type='checkbox', disabled, :checked = "c.contact_by_phone")
-                            label(for="phone").mx-2 Phone
-                        section
-                            input(id="'email'+c.id", type='checkbox', disabled, :checked = "c.contact_by_email")
-                            label(for="email").mx-2 Email
-                        section
-                            input(id="'mail'+c.id", type='checkbox', disabled, :checked = "c.contact_by_mail")
-                            label(for="mail").mx-2 Mail
-                    
+        .row.mt-4
+            .col-.col-lg-7(v-show='toggle_map')
+                .input-group.d-inline-flex
+                    select.form-select.btn.btn-outline-primary(v-model='search_radius')
+                        option(selected, value='') Select Search Radius
+                        option(value='5') 5 mi
+                        option(value='10') 10 mi 
+                        option(value='25') 25 mi
+                    input.form-control(type='text', v-model='search_address', placeholder=' - Enter Address - ')
+                    button.btn.btn-primary.btn-sm(type='button', @click = 'checkValid()')
+                        svg(xmlns="http://www.w3.org/2000/svg", width="16", height="16", fill="currentColor", class="bi bi-search", viewBox="0 0 16 16").mb-1
+                            path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")  
+                .position-relative.bottom-0.start-50
+                    .toast(ref='error')
+                        .toast-body {{toast_message}}
+                #map-container.my-3
+                    #map
+            .col
+                .input-group
+                    input.form-control(type='text', v-model='search_term', placeholder=' - Search By Name - ')
+                    button.btn.btn-primary.btn-sm(type='button', @click = 'filterListByName()')
+                        svg(xmlns="http://www.w3.org/2000/svg", width="16", height="16", fill="currentColor", class="bi bi-search", viewBox="0 0 16 16").mb-1
+                            path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")   
+                .alert.alert-warning.mt-4(v-if='contacts.length === 0'): i No Contacts Found
+                .list-group.my-2
+                    .list-group-item.my-2(v-for='c in contacts', @click='moveMap(c.latitude, c.longitude)')
+                        .row.my-1
+                            .col-
+                                a(:href="'/'+c.id") {{c.title}} {{c.first_name}} {{c.last_name}}
+                            .col-.mt-2
+                                span {{c.phone}}
+                            .col-
+                                span {{c.email}}
+                            .col-my-2
+                                span {{c.address}}
+                            .col-.my-2
+                                section
+                                    input(id="'phone'+c.id", type='checkbox', disabled, :checked = "c.contact_by_phone")
+                                    label(for="phone").mx-2 Phone
+                                section
+                                    input(id="'email'+c.id", type='checkbox', disabled, :checked = "c.contact_by_email")
+                                    label(for="email").mx-2 Email
+                                section
+                                    input(id="'mail'+c.id", type='checkbox', disabled, :checked = "c.contact_by_mail")
+                                    label(for="mail").mx-2 Mail
+            
+
+    script(src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js", integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=", crossorigin="")          
     script. 
         Vue.createApp({
             data: function() {
                 return {
-                    contacts: [],    
+                    contacts: [],
+                    markers: [],
+                    map: '',
+                    toggle_map: true,
+                    search_term: '',
+                    search_radius: '',
+                    search_address: '',
+                    center: {},
+                    toast_message: ''  
                 }
             },
-            mounted: function() {
-                this.init();
+            mounted: async function() {
+                await this.initList();
+                await this.initMap()
+
             },
             methods: {
-                async init(){
+                showToast(){
+                    const toast = new bootstrap.Toast(this.$refs.error)
+                    toast.show()
+                },
+                async initList(){
                     const response = await axios.get('/home');
                     this.contacts = response.data.contacts;
+                },
+                async initMap(){
+                    map = L.map('map').setView([40.4, -74.5], 11);
+                    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    }).addTo(map);
+
+                    await this.initMarkers();
+                },
+                async initMarkers(){
+                    for(const m of this.markers){
+                        map.removeLayer(m.marker);
+                    }
+                    this.markers.splice(0, this.markers.length);
+                    for(const place of this.contacts){
+                        if(place.latitude !== '' && place.longitude !== ''){
+                            const marker = L.marker([place.latitude, place.longitude]).addTo(map).bindPopup(`<b>${place.title} ${place.first_name} ${place.last_name}</b><br/>${place.address}`);
+                            this.markers.push({id: place.id, marker: marker});
+                        }
+                    }
+                },
+                moveMap(lat, lng){
+                    if(lat !== '' && lng !== ''){
+                        map.flyTo(new L.LatLng(lat,lng));
+                    }
+                },
+                async filterListByName(){
+                    const response = await axios.post('/filter', {search : this.search_term});
+                    this.contacts = response.data.contacts;
+                    this.map = '';
+                    await this.initMarkers()
+                },
+                async checkValid(){
+                    if(this.search_address === ''){
+                        await this.initList()
+                        await this.initMarkers()
+                    }
+                    else{
+                        if(this.search_radius === ''){
+                            this.toast_message = 'Please select a search radius'
+                            this.showToast()
+                        }
+                        else if(this.search_address !== ''){
+                            const response = await axios.post('/geolocate', {address : this.search_address});
+                            if(response.data.result){
+                                this.toast_message = 'Please enter a valid address'
+                                this.showToast()
+                            }
+                            else{
+                                this.center.lat = response.data.latitude;
+                                this.center.lng = response.data.longitude;
+                                this.moveMap(this.center.lat, this.center.lng)
+                                this.filterListByDistance();
+                            }
+                        }
+                    }
+                },
+                async filterListByDistance(){
+                    const response = await axios.get('/home');
+                    const full_list = response.data.contacts;
+                    for(const c of full_list){
+                        let dist = '';
+                        if ((this.center.lat == c.latitude) && (this.center.lng == c.longitude)) {
+                            dist = 0;
+                        }
+                        else {
+                            const radlat1 = Math.PI * this.center.lat/180;
+                            const radlat2 = Math.PI * c.latitude/180;
+                            const theta = this.center.lng-c.longitude;
+                            const radtheta = Math.PI * theta/180;
+                            dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+                            if (dist > 1) {
+                                dist = 1;
+                            }
+                            dist = Math.acos(dist);
+                            dist = dist * 180/Math.PI;
+                            dist = dist * 60 * 1.1515;
+                        }
+                        c.distance = dist;
+                    }
+                    this.contacts = full_list.filter(c => c.distance <= this.search_radius)
+                    await this.initMarkers()
                 }
             }
         }).mount('#contact-list')

@@ -1,133 +1,76 @@
-require('dotenv').config();
-const Database = require('dbcmps369');
-const bcrypt = require('bcryptjs')
+const assert = require('assert');
+const sqlite = require('sqlite-async');
 
-class ContactDB{
-    constructor(){
-        this.db = new Database();
+class DataStore {
+    constructor() {
+        // Read Configuration
+        this.path = process.env.DBPATH;
+        assert(this.path !== undefined, "DBPATH not specified in environment.");
     }
 
-    async initialize(){
-        await this.db.connect();
-
-        await this.db.schema('Contact', [
-            { name: 'id', type: 'INTEGER' },
-            { name: 'title', type: 'TEXT' },
-            { name: 'first_name', type: 'TEXT' },
-            { name: 'last_name', type: 'TEXT' },
-            { name: 'phone', type: 'TEXT' },
-            { name: 'email', type: 'TEXT' },
-            { name: 'address', type: 'TEXT' },
-            { name: 'contact_by_email', type: 'INTEGER' },
-            { name: 'contact_by_phone', type: 'INTEGER' },
-            { name: 'contact_by_mail', type: 'INTEGER' },
-            { name: 'latitude', type: 'REAL' },
-            { name: 'longitude', type: 'REAL' }
-        ], 'id');
-
-        await this.db.schema('Users', [
-            { name: 'id', type: 'INTEGER' },
-            { name: 'first_name', type: 'TEXT' },
-            { name: 'last_name', type: 'TEXT' },
-            { name: 'username', type: 'TEXT' },
-            { name: 'password', type: 'TEXT' }
-        ], 'id');
-
+    async connect() {
+        this.db = await sqlite.open(this.path);
     }
 
-    // async addDefaultData(){
-    //     const salt = bcrypt.genSaltSync(10);
-    //     const hash = bcrypt.hashSync('rcnj', salt); 
-    //     const id = await this.createUser('Scott', 'Frees', 'cmps369', hash);
-
-    //     const c = {
-    //         first: 'Example',
-    //         last: 'Example',
-    //         phone: '123-456-7890',
-    //         email: 'example@example.com',      
-    //         street: '123 Example Road',        
-    //         city: 'Example',
-    //         state: 'Example',
-    //         zip: '12345',
-    //         country: 'USA',
-    //         by_phone: 'on',
-    //         by_email: 'on'
-    //     }
-    //     for (let i = 0; i < 4; i++) {
-    //         const id = await this.createContact(c);
-    //     }
-    // }
-
-    async createUser(first, last, username, password) {
-        const id = await this.db.create('Users', [
-            { column: 'first_name', value: first },
-            { column: 'last_name', value: last },
-            { column: 'username', value: username },
-            { column: 'password', value: password },
-        ])
-        return id;
+    async schema(table, schema, pkey) {
+        const sql = `CREATE TABLE IF NOT EXISTS "${table}" 
+            (${schema.map(c => `"${c.name}" ${c.type}`).join(", ")}, 
+            PRIMARY KEY ("${pkey}"))`;
+        console.log(sql);
+        await this.db.run(sql);
+        return;
     }
 
-    async createContact(r){
-        const id = await this.db.create('Contact', [
-            { column: 'title', value: r.title },
-            { column: 'first_name', value: r.first_name },
-            { column: 'last_name', value: r.last_name },
-            { column: 'phone', value: r.phone },
-            { column: 'email', value: r.email },
-            { column: 'address', value: r.address },
-            { column: 'contact_by_email', value: r.contact_by_email ? 1 : 0 },
-            { column: 'contact_by_phone', value: r.contact_by_phone ? 1 : 0 },
-            { column: 'contact_by_mail', value: r.contact_by_mail ? 1 : 0 },
-            { column: 'latitude', value: r.latitude },
-            { column: 'longitude', value: r.longitude }
-        ])
-        return id;
+    async create(table, data) {
+        const params = Array(data.length).fill('?')
+        const sql = `INSERT into ${table} (${data.map(d => d.column).join(',')}) values (${params.join(',')})`;
+        console.log(sql, data.map(d => d.value));
+        const result = await this.db.run(
+            sql,
+            data.map(d => d.value));
+        return result.lastID;
     }
 
-    async editContact(id, r){
-        await this.db.update('Contact', [
-                { column: 'title', value: r.title },
-                { column: 'first_name', value: r.first_name },
-                { column: 'last_name', value: r.last_name },
-                { column: 'phone', value: r.phone },
-                { column: 'email', value: r.email },
-                { column: 'address', value: r.address },
-                { column: 'contact_by_email', value: r.contact_by_email ? 1 : 0 },
-                { column: 'contact_by_phone', value: r.contact_by_phone ? 1 : 0 },
-                { column: 'contact_by_mail', value: r.contact_by_mail ? 1 : 0 },
-                { column: 'latitude', value: r.latitude },
-                { column: 'longitude', value: r.longitude }
-            ],
-            [{column: 'id', value: id}]
-        )
-        
+    /** This is limited to supporting direct match query parameters.
+     *  Query is an array of column/value pairs
+     */
+    async read(table, query) {
+        let sql = `SELECT * from ${table}`;
+        if (query.length > 0) {
+            sql += ` WHERE ${query.map(d => `${d.column} = ?`).join(' and ')}`
+        }
+        console.log(sql, query.map(d => d.value));
+        return await this.db.all(
+            sql, query.map(d => d.value)
+        );
     }
 
-    async findContacts(){
-        const contacts = await this.db.read('Contact', []);
-        return contacts;
+    async filter(table, query) {
+        let sql = `SELECT * from ${table}`;
+        if (query.length > 0) {
+            sql += ` WHERE ${query.map(d => `${d.column} LIKE ?`).join(' or ')}`
+        }
+        console.log(sql, query.map(d => '%'+d.value+'%'));
+        return await this.db.all(
+            sql, query.map(d => '%'+d.value+'%')
+        );
     }
 
-    async findSingleContact(id){
-        const contacts = await this.db.read('Contact', [{column: 'id', value: id}]);
-        if (contacts.length > 0) 
-            return contacts[0];
-        else
-            return undefined;
+    async update(table, data, query) {
+        let sql = `UPDATE ${table} set ${data.map(d => `${d.column}=?`)} where ${query.map(d => `${d.column} = ?`).join(' and ')}`;
+        const _data = data.map(d => d.value).concat(query.map(q => q.value));
+        console.log(sql, _data);
+        return await this.db.run(sql, _data)
     }
 
-    async findUserByUsername(username){
-        const us = await this.db.read('Users', [{ column: 'username', value: username }]);
-        if (us.length > 0) 
-            return us[0];
-        else 
-            return undefined;       
-    }
-
-    async deleteContact(id){
-        await this.db.delete('Contact', [{column: 'id', value: id}])
+    async delete(table, query) {
+        assert(query.length > 0, 'Deleting without query is a bad idea');
+        let sql = `DELETE from ${table} WHERE ${query.map(d => `${d.column} = ?`).join(' and ')}`;
+        console.log(sql, query.map(d => d.value));
+        return await this.db.all(
+            sql, query.map(d => d.value)
+        );
     }
 }
 
-module.exports = ContactDB;
+module.exports = DataStore;

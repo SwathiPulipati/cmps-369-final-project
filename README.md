@@ -11,3 +11,4 @@ tecnologies used:
 - axios
 - vue
 - sqlite
+- leaflet
